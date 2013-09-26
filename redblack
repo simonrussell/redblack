@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require_relative 'lib/mutable_llrb_tree'
+
+keys = ((1..1000).to_a * 10).shuffle
+
+hash = Hash.new
+mutable_llrb_tree = MutableLlrbTree.new
+
+keys.each do |k|
+  v = rand(100)
+
+  hash[k] = v
+  mutable_llrb_tree[k] = v
+end
+
+puts mutable_llrb_tree
+puts hash == mutable_llrb_tree.to_h
+
+delete_keys = (50..70).to_a.shuffle
+
+delete_keys.each do |k|
+  hash.delete(k)
+  mutable_llrb_tree.delete!(k)
+end
+
+puts hash == mutable_llrb_tree.to_h
