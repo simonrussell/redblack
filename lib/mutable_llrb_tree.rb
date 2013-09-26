@@ -11,12 +11,20 @@ class MutableLlrbTree
       true
     end
 
+    def each(block)
+      # nothing
+    end
+
     def search(key)
       nil
     end
 
     def insert(key, value)
       Node.new(key, value)
+    end
+
+    def delete(key)
+      self
     end
 
     def black?
@@ -50,6 +58,18 @@ class MutableLlrbTree
 
     def black?
       @colour == BLACK
+    end
+
+    def min_node
+      h = self
+      h = h.left until h.left.empty?
+      h
+    end
+
+    def each(block)
+      @left.each(block)
+      block.(@key, @value)
+      @right.each(block)
     end
 
     def search(key)
@@ -91,6 +111,44 @@ class MutableLlrbTree
       h
     end
 
+    def delete(key)
+      h = self
+
+      if key < h.key
+        unless h.left.empty?
+          h = h.move_red_left if h.left.black? && h.left.left.black?
+          h.left = h.left.delete(key)
+        end
+      else
+        h = h.rotate_right if h.left.red?
+        return EMPTY if key == h.key && h.right.empty?
+        h = h.move_red_right if h.right.black? && h.right.left.black?
+
+        if key == h.key
+          right_min = h.right.min_node
+          h.key = right_min.key
+          h.value = right_min.value
+          h.right = h.right.delete_min
+        else
+          h.right = h.right.delete(key)
+        end
+      end
+
+      h.fix_up
+    end
+
+    def delete_min
+      h = self
+
+      return EMPTY if h.left.empty?
+
+      h = h.move_red_left if h.left.black? && h.left.left.black?
+
+      h.left = h.left.delete_min
+
+      h.fix_up
+    end
+
     def rotate_left
       x = @right
       @right = x.left
@@ -113,6 +171,41 @@ class MutableLlrbTree
       @colour = invert_colour(@colour)
       @left.colour = invert_colour(@left.colour)
       @right.colour = invert_colour(@right.colour)
+    end
+
+    def move_red_left
+      h = self
+
+      h.flip_colours!
+
+      if h.right.left.red?
+        h.right = h.right.rotate_right
+        h = h.rotate_left
+        h.flip_colours!
+      end
+
+      h
+    end
+
+    def move_red_right
+      h = self
+
+      h.flip_colours!
+
+      if h.left.left.red?
+        h = h.rotate_right
+        h.flip_colours!
+      end
+
+      h
+    end
+
+    def fix_up
+      h = self
+      h = h.rotate_left if h.right.red?
+      h = h.rotate_right if h.left.red? && h.left.left.red?
+      h.flip_colours! if h.left.red? && h.right.red?
+      h
     end
 
     private
@@ -143,18 +236,13 @@ class MutableLlrbTree
 
   alias :[]= :insert!
 
-  def delete_min!
-    @root = do_delete_min(@root)
-    @root.colour = BLACK unless @root.empty?
-  end
-
   def delete!(key)
-    @root = do_delete(@root, key)
+    @root = @root.delete(key)
     @root.colour = BLACK unless @root.empty?
   end
 
   def each(&block)
-    do_each(@root, block)
+    @root.each(block)
   end
 
   def to_h
@@ -179,100 +267,5 @@ class MutableLlrbTree
 
   def to_s
     "#<#{self.class.name} #{to_h}>"
-  end
-
-  private
-
-  def do_delete(h, key)
-    if key < h.key
-      unless h.left.empty?
-        h = move_red_left(h) if !is_red?(h.left) && !is_red?(h.left.left)
-        h.left = do_delete(h.left, key)
-      end
-    else
-      h = rotate_right(h) if is_red?(h.left)
-      return EMPTY if key == h.key && h.right.empty?
-      h = move_red_right(h) if !is_red?(h.right) && !is_red?(h.right.left)
-
-      if key == h.key
-        right_min = min_node(h.right)
-        h.key = right_min.key
-        h.value = right_min.value #h.right.search(right_min.key)
-        h.right = do_delete_min(h.right)
-      else
-        h.right = do_delete(h.right, key)
-      end
-    end
-
-    fix_up(h)
-  end
-
-  def do_delete_min(h)
-    return EMPTY if h.left.empty?
-
-    h = move_red_left(h) if !is_red?(h.left) && !is_red?(h.left.left)
-
-    h.left = do_delete_min(h.left)
-
-    fix_up(h)
-  end
-
-  def move_red_left(h)
-    flip_colours!(h)
-
-    if is_red?(h.right.left)
-      h.right = rotate_right(h.right)
-      h = rotate_left(h)
-      flip_colours!(h)
-    end
-
-    h
-  end
-
-  def move_red_right(h)
-    flip_colours!(h)
-
-    if is_red?(h.left.left)
-      h = rotate_right(h)
-      flip_colours!(h)
-    end
-
-    h
-  end
-
-  def do_each(h, block)
-    return if h.empty?
-
-    do_each(h.left, block)
-    block.(h.key, h.value)
-    do_each(h.right, block)
-  end
-
-  def is_red?(h)
-    !h.empty? && h.colour == RED
-  end
-
-  def rotate_left(h)
-    h.rotate_left
-  end
-
-  def rotate_right(h)
-    h.rotate_right
-  end
-
-  def flip_colours!(h)
-    h.flip_colours!
-  end
-
-  def min_node(h)
-    h = h.left until h.left.empty?
-    h
-  end
-
-  def fix_up(h)
-    h = rotate_left(h) if is_red?(h.right)
-    h = rotate_right(h) if is_red?(h.left) && is_red?(h.left.left)
-    flip_colours!(h) if is_red?(h.left) && is_red?(h.right)
-    h
   end
 end
