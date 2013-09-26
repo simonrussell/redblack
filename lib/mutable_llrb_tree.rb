@@ -10,6 +10,10 @@ class MutableLlrbTree
     def empty?
       true
     end
+
+    def search(key)
+      nil
+    end
   end
 
   EMPTY = EmptyNode.new.freeze
@@ -27,6 +31,24 @@ class MutableLlrbTree
     def empty?
       false
     end
+
+    def search(key)
+      x = self
+
+      until x.empty?
+        cmp = (key <=> x.key)
+
+        if cmp == 0
+          return x.value
+        elsif cmp < 0
+          x = x.left
+        else
+          x = x.right
+        end
+      end
+
+      nil
+    end
   end
 
   def initialize(values = {})
@@ -38,7 +60,7 @@ class MutableLlrbTree
   end
 
   def search(key)
-    do_search(@root, key)
+    @root.search(key)
   end
 
   alias :[] :search
@@ -52,12 +74,12 @@ class MutableLlrbTree
 
   def delete_min!
     @root = do_delete_min(@root)
-    @root.colour = BLACK
+    @root.colour = BLACK unless @root.empty?
   end
 
   def delete!(key)
     @root = do_delete(@root, key)
-    @root.colour = BLACK
+    @root.colour = BLACK unless @root.empty?
   end
 
   def each(&block)
@@ -90,22 +112,6 @@ class MutableLlrbTree
 
   private
 
-  def do_search(x, key)
-    until x.empty?
-      cmp = (key <=> x.key)
-
-      if cmp == 0
-        return x.value
-      elsif cmp < 0
-        x = x.left
-      else
-        x = x.right
-      end
-    end
-
-    nil
-  end
-
   def do_insert(h, key, value)
     return Node.new(key, value) if h.empty?
 
@@ -129,8 +135,10 @@ class MutableLlrbTree
 
   def do_delete(h, key)
     if key < h.key
-      h = move_red_left(h) if !is_red?(h.left) && !is_red?(h.left.left)
-      h.left = do_delete(h.left, key)
+      unless h.left.empty?
+        h = move_red_left(h) if !is_red?(h.left) && !is_red?(h.left.left)
+        h.left = do_delete(h.left, key)
+      end
     else
       h = rotate_right(h) if is_red?(h.left)
       return EMPTY if key == h.key && h.right.empty?
@@ -139,7 +147,7 @@ class MutableLlrbTree
       if key == h.key
         right_min = min_node(h.right)
         h.key = right_min.key
-        h.value = do_search(h.right, right_min.key)
+        h.value = right_min.value #h.right.search(right_min.key)
         h.right = do_delete_min(h.right)
       else
         h.right = do_delete(h.right, key)

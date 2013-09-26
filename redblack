@@ -25,3 +25,13 @@ delete_keys.each do |k|
 end
 
 puts hash == mutable_llrb_tree.to_h
+
+(1..1000).each do |k|
+  #puts mutable_llrb_tree
+  raise "!" unless hash == mutable_llrb_tree.to_h
+  hash.delete(k)
+  mutable_llrb_tree.delete!(k)
+end
+
+puts hash == {}
+puts mutable_llrb_tree.to_h == {}
