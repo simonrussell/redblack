@@ -14,6 +14,18 @@ class MutableLlrbTree
     def search(key)
       nil
     end
+
+    def insert(key, value)
+      Node.new(key, value)
+    end
+
+    def black?
+      true
+    end
+
+    def red?
+      false
+    end
   end
 
   EMPTY = EmptyNode.new.freeze
@@ -30,6 +42,14 @@ class MutableLlrbTree
 
     def empty?
       false
+    end
+
+    def red?
+      @colour == RED
+    end
+
+    def black?
+      @colour == BLACK
     end
 
     def search(key)
@@ -49,6 +69,57 @@ class MutableLlrbTree
 
       nil
     end
+
+    def insert(key, value)
+      h = self
+
+      h.flip_colours! if h.left.red? && h.right.red?
+
+      cmp = (key <=> h.key)
+
+      if cmp == 0
+        h.value = value
+      elsif cmp < 0
+        h.left = h.left.insert(key, value)
+      else
+        h.right = h.right.insert(key, value)
+      end
+
+      h = h.rotate_left if h.left.black? && h.right.red?
+      h = h.rotate_right if h.left.red? && h.left.left.red?
+
+      h
+    end
+
+    def rotate_left
+      x = @right
+      @right = x.left
+      x.left = self
+      x.colour = @colour
+      @colour = RED
+      x
+    end
+
+    def rotate_right
+      x = @left
+      @left = x.right
+      x.right = self
+      x.colour = @colour
+      @colour = RED
+      x
+    end
+
+    def flip_colours!
+      @colour = invert_colour(@colour)
+      @left.colour = invert_colour(@left.colour)
+      @right.colour = invert_colour(@right.colour)
+    end
+
+    private
+
+    def invert_colour(colour)
+      colour == RED ? BLACK : RED
+    end
   end
 
   def initialize(values = {})
@@ -66,7 +137,7 @@ class MutableLlrbTree
   alias :[] :search
 
   def insert!(key, value)
-    @root = do_insert(@root, key, value)
+    @root = @root.insert(key, value)
     @root.colour = BLACK
   end
 
@@ -111,27 +182,6 @@ class MutableLlrbTree
   end
 
   private
-
-  def do_insert(h, key, value)
-    return Node.new(key, value) if h.empty?
-
-    flip_colours!(h) if is_red?(h.left) && is_red?(h.right)
-
-    cmp = (key <=> h.key)
-
-    if cmp == 0
-      h.value = value
-    elsif cmp < 0
-      h.left = do_insert(h.left, key, value)
-    else
-      h.right = do_insert(h.right, key, value)
-    end
-
-    h = rotate_left(h) if !is_red?(h.left) && is_red?(h.right)
-    h = rotate_right(h) if is_red?(h.left) && is_red?(h.left.left)
-
-    h
-  end
 
   def do_delete(h, key)
     if key < h.key
@@ -202,32 +252,16 @@ class MutableLlrbTree
     !h.empty? && h.colour == RED
   end
 
-  def invert_colour(colour)
-    colour == RED ? BLACK : RED
-  end
-
   def rotate_left(h)
-    x = h.right
-    h.right = x.left
-    x.left = h
-    x.colour = h.colour
-    h.colour = RED
-    x
+    h.rotate_left
   end
 
   def rotate_right(h)
-    x = h.left
-    h.left = x.right
-    x.right = h
-    x.colour = h.colour
-    h.colour = RED
-    x
+    h.rotate_right
   end
 
   def flip_colours!(h)
-    h.colour = invert_colour(h.colour)
-    h.left.colour = invert_colour(h.left.colour)
-    h.right.colour = invert_colour(h.right.colour)
+    h.flip_colours!
   end
 
   def min_node(h)
