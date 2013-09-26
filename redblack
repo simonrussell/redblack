@@ -2,6 +2,15 @@
 
 require_relative 'lib/mutable_llrb_tree'
 
+def in_order!(h)
+  last = -1
+
+  h.each do |k, _|
+    raise "!" unless k > last
+    last = k
+  end
+end
+
 keys = ((1..1000).to_a * 10).shuffle
 
 hash = Hash.new
@@ -12,6 +21,8 @@ keys.each do |k|
 
   hash[k] = v
   mutable_llrb_tree[k] = v
+
+  in_order!(mutable_llrb_tree)
 end
 
 puts mutable_llrb_tree
@@ -22,6 +33,8 @@ delete_keys = (50..70).to_a.shuffle
 delete_keys.each do |k|
   hash.delete(k)
   mutable_llrb_tree.delete!(k)
+
+  in_order!(mutable_llrb_tree)
 end
 
 puts hash == mutable_llrb_tree.to_h
@@ -31,6 +44,8 @@ puts hash == mutable_llrb_tree.to_h
   raise "!" unless hash == mutable_llrb_tree.to_h
   hash.delete(k)
   mutable_llrb_tree.delete!(k)
+
+  in_order!(mutable_llrb_tree)
 end
 
 puts hash == {}
