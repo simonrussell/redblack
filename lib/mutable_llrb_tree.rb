@@ -2,6 +2,18 @@ class MutableLlrbTree
   RED = Object.new
   BLACK = Object.new
 
+  class EmptyNode
+    def search(key)
+      nil
+    end
+
+    def empty?
+      true
+    end
+  end
+
+  EMPTY = EmptyNode.new.freeze
+
   class Node
     attr_accessor :key, :value, :colour, :left, :right
 
@@ -9,12 +21,16 @@ class MutableLlrbTree
       @key = key
       @value = value
       @colour = RED
-      @left = @right = nil
+      @left = @right = EMPTY
+    end
+
+    def empty?
+      false
     end
   end
 
   def initialize(values = {})
-    @root = nil
+    @root = EMPTY
 
     values.each do |k, v|
       insert!(k, v)
@@ -75,7 +91,7 @@ class MutableLlrbTree
   private
 
   def do_search(x, key)
-    while x
+    until x.empty?
       cmp = (key <=> x.key)
 
       if cmp == 0
@@ -91,7 +107,7 @@ class MutableLlrbTree
   end
 
   def do_insert(h, key, value)
-    return Node.new(key, value) if h.nil?
+    return Node.new(key, value) if h.empty?
 
     flip_colours!(h) if is_red?(h.left) && is_red?(h.right)
 
@@ -117,7 +133,7 @@ class MutableLlrbTree
       h.left = do_delete(h.left, key)
     else
       h = rotate_right(h) if is_red?(h.left)
-      return nil if key == h.key && h.right.nil?
+      return EMPTY if key == h.key && h.right.empty?
       h = move_red_right(h) if !is_red?(h.right) && !is_red?(h.right.left)
 
       if key == h.key
@@ -134,7 +150,7 @@ class MutableLlrbTree
   end
 
   def do_delete_min(h)
-    return nil if h.left.nil?
+    return EMPTY if h.left.empty?
 
     h = move_red_left(h) if !is_red?(h.left) && !is_red?(h.left.left)
 
@@ -167,7 +183,7 @@ class MutableLlrbTree
   end
 
   def do_each(h, block)
-    return if h.nil?
+    return if h.empty?
 
     do_each(h.left, block)
     block.(h.key, h.value)
@@ -175,7 +191,7 @@ class MutableLlrbTree
   end
 
   def is_red?(h)
-    h && h.colour == RED
+    !h.empty? && h.colour == RED
   end
 
   def invert_colour(colour)
@@ -207,7 +223,7 @@ class MutableLlrbTree
   end
 
   def min_node(h)
-    h = h.left while h.left
+    h = h.left until h.left.empty?
     h
   end
 
